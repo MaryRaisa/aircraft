@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}All Maintenance Records{% endblock %}
+{% block page_title %}Digital Maintenance Audit Logs{% endblock %}
+{% block page_subtitle %}Comprehensive historical audit trail of all aircraft maintenance activities across the fleet{% endblock %}
+
+{% block content %}
+<!-- Filter & Export Bar -->
+<form method="GET" action="{{ url_for('all_records') }}" class="filter-bar">
+  <div class="filter-group">
+    <!-- Aircraft Filter -->
+    <select name="aircraft" class="form-control" style="width: 250px;" onchange="this.form.submit()">
+      <option value="">All Aircraft (Entire Fleet)</option>
+      {% for plane in fleet %}
+        <option value="{{ plane.registration }}" {% if aircraft_filter == plane.registration %}selected{% endif %}>
+          {{ plane.registration }} — {{ plane.airline }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <!-- Status Filter -->
+    <select name="status" class="form-control" style="width: 220px;" onchange="this.form.submit()">
+      <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Service Statuses</option>
+      <option value="Completed — sample record" {% if status_filter == 'Completed — sample record' %}selected{% endif %}>Completed</option>
+      <option value="Further inspection required" {% if status_filter == 'Further inspection required' %}selected{% endif %}>Further inspection required</option>
+      <option value="Pending inspection" {% if status_filter == 'Pending inspection' %}selected{% endif %}>Pending inspection</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">
+      <i data-lucide="filter"></i> Filter
+    </button>
+
+    {% if aircraft_filter or status_filter != 'all' %}
+      <a href="{{ url_for('all_records') }}" class="btn btn-secondary" title="Reset Filters">
+        <i data-lucide="rotate-ccw"></i> Reset
+      </a>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <a href="{{ url_for('export_csv', aircraft=aircraft_filter) }}" class="btn btn-secondary">
+      <i data-lucide="download"></i> Export CSV
+    </a>
+    <a href="{{ url_for('maintenance_create', aircraft=aircraft_filter) }}" class="btn btn-primary">
+      <i data-lucide="plus"></i> Add Maintenance Record
+    </a>
+  </div>
+</form>
+
+<!-- Records Table Card -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if records %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Log #</th>
+              <th>Service Date</th>
+              <th>Aircraft</th>
+              <th>Component / System</th>
+              <th>Maintenance Activity</th>
+              <th>Fault / Issue</th>
+              <th>Action Taken</th>
+              <th>Technician</th>
+              <th>Status</th>
+              <th>Next Inspection</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in records %}
+              <tr>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-muted);">
+                    #{{ r.record_id }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12.5px;">
+                    {{ r.service_date }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{{ url_for('aircraft_master_view', registration=r.aircraft_registration) }}" class="comp-id-link">
+                    {{ r.aircraft_registration }}
+                  </a>
+                  <div style="font-size: 11px; font-weight: 600; color: var(--navy-dark); margin-top: 1px;">
+                    {{ r.airline }}
+                  </div>
+                </td>
+                <td>
+                  <span style="font-weight: 700; font-size: 13px; color: var(--navy-dark);">
+                    {{ r.component_name }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12.5px; color: var(--navy-dark); font-weight: 500;">
+                    {{ r.maintenance_activity }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12px; color: var(--text-secondary);">
+                    {{ r.fault_reported or 'None' }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12px; color: var(--text-secondary);">
+                    {{ r.action_taken or 'Completed' }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12.5px; font-weight: 600;">{{ r.technician }}</span>
+                </td>
+                <td>
+                  {% if 'Completed' in r.service_status %}
+                    <span class="badge badge-success">{{ r.service_status }}</span>
+                  {% elif 'Pending' in r.service_status %}
+                    <span class="badge badge-warning">{{ r.service_status }}</span>
+                  {% elif 'Further' in r.service_status %}
+                    <span class="badge badge-danger">{{ r.service_status }}</span>
+                  {% else %}
+                    <span class="badge badge-info">{{ r.service_status }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--sky-primary);">
+                    {{ r.next_inspection_date or '—' }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i data-lucide="clipboard-x"></i>
+        </div>
+        <h3>No Maintenance Records Found</h3>
+        <p>No maintenance logs match your selected filter criteria.</p>
+        <a href="{{ url_for('maintenance_create') }}" class="btn btn-primary">
+          <i data-lucide="plus"></i> Add Maintenance Record
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

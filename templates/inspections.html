@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Inspection Logs{% endblock %}
+{% block page_title %}Maintenance & Inspection Logs{% endblock %}
+{% block page_subtitle %}Comprehensive historical audit trail of maintenance evaluations and findings{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<form method="GET" action="{{ url_for('inspection_list') }}" class="filter-bar">
+  <div class="filter-group">
+    <!-- Component Filter -->
+    <select name="component_id" class="form-control" style="width: 200px;" onchange="this.form.submit()">
+      <option value="">All Components</option>
+      {% for comp in components %}
+        <option value="{{ comp.id }}" {% if component_id_filter == comp.id %}selected{% endif %}>
+          {{ comp.id }} - {{ comp.name[:25] }}...
+        </option>
+      {% endfor %}
+    </select>
+
+    <!-- Result Filter -->
+    <select name="result" class="form-control" style="width: 170px;" onchange="this.form.submit()">
+      <option value="all" {% if result_filter == 'all' %}selected{% endif %}>All Results</option>
+      <option value="Passed" {% if result_filter == 'Passed' %}selected{% endif %}>Passed Only</option>
+      <option value="Failed" {% if result_filter == 'Failed' %}selected{% endif %}>Failed Only</option>
+      <option value="Needs Review" {% if result_filter == 'Needs Review' %}selected{% endif %}>Needs Review Only</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">
+      <i data-lucide="filter"></i> Filter
+    </button>
+
+    {% if result_filter != 'all' or component_id_filter %}
+      <a href="{{ url_for('inspection_list') }}" class="btn btn-secondary" title="Reset Filters">
+        <i data-lucide="rotate-ccw"></i> Reset
+      </a>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <a href="{{ url_for('export_inspections_csv') }}" class="btn btn-secondary">
+      <i data-lucide="download"></i> Export CSV
+    </a>
+    <a href="{{ url_for('inspection_create') }}" class="btn btn-primary">
+      <i data-lucide="plus"></i> Record Inspection
+    </a>
+  </div>
+</form>
+
+<!-- Inspections Table Card -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if inspections %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Log #</th>
+              <th>Inspection Date</th>
+              <th>Component</th>
+              <th>Technician / License</th>
+              <th>Inspection Type</th>
+              <th>Result</th>
+              <th>Recommended Follow-up</th>
+              <th>Technician Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for insp in inspections %}
+              <tr>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);">
+                    #{{ insp.id }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12.5px;">
+                    {{ insp.inspection_date }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{{ url_for('component_detail', component_id=insp.component_id) }}" class="comp-id-link">
+                    {{ insp.component_id }}
+                  </a>
+                  <div style="font-size: 11.5px; color: var(--navy-dark); font-weight: 500; margin-top: 2px;">
+                    {{ insp.component_name }}
+                  </div>
+                </td>
+                <td>
+                  <span style="font-weight: 600; font-size: 12.5px;">{{ insp.technician_name }}</span>
+                </td>
+                <td>
+                  <span style="font-size: 12.5px;">{{ insp.inspection_type }}</span>
+                </td>
+                <td>
+                  {% if insp.result == 'Passed' %}
+                    <span class="badge badge-success"><i data-lucide="check"></i> Passed</span>
+                  {% elif insp.result == 'Failed' %}
+                    <span class="badge badge-danger"><i data-lucide="x"></i> Failed</span>
+                  {% else %}
+                    <span class="badge badge-warning"><i data-lucide="alert-circle"></i> Review</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-secondary);">
+                    {{ insp.recommended_followup_date or '—' }}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                    {{ insp.notes or 'No remarks recorded.' }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i data-lucide="clipboard-x"></i>
+        </div>
+        <h3>No Inspection Records Found</h3>
+        <p>No inspection logs match your selected filter criteria.</p>
+        <a href="{{ url_for('inspection_create') }}" class="btn btn-primary">
+          <i data-lucide="plus"></i> Log an Inspection
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

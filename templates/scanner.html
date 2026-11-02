@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Optical Aircraft QR Scanner{% endblock %}
+{% block page_title %}Optical Aircraft QR Scanner{% endblock %}
+{% block page_subtitle %}Live camera-based aircraft QR identification & digital maintenance history retrieval{% endblock %}
+
+{% block extra_head %}
+<!-- Html5Qrcode Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="scanner-container">
+  <!-- Feedback Banner (Dynamically shown upon scan/lookup) -->
+  <div id="scanFeedback" style="display: none; margin-bottom: 20px;"></div>
+
+  <!-- Camera QR Scanner Viewport Card -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i data-lucide="camera" style="color: var(--sky-primary);"></i>
+        Live Optical Aircraft QR Scanner
+      </h3>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span id="scanStatus" style="font-size: 12px; color: var(--text-muted);">Camera Standby</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Camera selector and controls -->
+      <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 200px;">
+          <select id="cameraSelect" class="form-control">
+            <option value="">Detecting cameras...</option>
+          </select>
+        </div>
+        <button id="startScanBtn" class="btn btn-primary">
+          <i data-lucide="video"></i> Start Camera
+        </button>
+        <button id="stopScanBtn" class="btn btn-danger" style="display: none;">
+          <i data-lucide="video-off"></i> Stop Camera
+        </button>
+      </div>
+
+      <!-- Live Video Viewport Box -->
+      <div class="scanner-viewport-box">
+        <div id="qr-reader"></div>
+        <div class="scanner-overlay" id="scannerOverlay" style="display: none;">
+          <div class="scanner-reticle">
+            <div class="scan-laser-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px; font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+        <i data-lucide="shield-check" style="width: 16px; height: 16px; color: var(--sky-primary);"></i>
+        <span>Point camera at any Master Aircraft QR code. Automatically decodes and opens all past maintenance logs.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Aircraft Registration Fallback Card -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i data-lucide="keyboard" style="color: var(--sky-primary);"></i>
+        Manual Aircraft Tail Registration Lookup Fallback
+      </h3>
+    </div>
+    <div class="card-body">
+      <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 16px;">
+        If camera hardware is unavailable or permissions are restricted, enter the aircraft registration or airline name directly:
+      </p>
+
+      <form id="manualLookupForm" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+        <input 
+          type="text" 
+          id="manualComponentId" 
+          class="form-control" 
+          placeholder="e.g. VT-AER..." 
+          style="flex: 1; min-width: 220px; font-family: 'JetBrains Mono', monospace; font-weight: 700; text-transform: uppercase;" 
+          required
+        >
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="search"></i> Search Aircraft Maintenance Logs
+        </button>
+      </form>
+
+      <!-- Quick Test Demo Button for Aircraft -->
+      <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+        <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 10px;">
+          Quick-Test Aircraft QR Decoder (Click to Test Instant Lookup):
+        </span>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+          
+          <!-- Air India / AeroFleet VT-AER -->
+          <button type="button" class="btn btn-secondary btn-quick-test" data-id="VT-AER" style="justify-content: flex-start; text-align: left; padding: 12px 16px;">
+            <div style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: var(--navy-dark); font-size: 14px;">Air India / AeroFleet</strong>
+                <span style="background: #E0E7FF; color: #3730A3; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 4px;">VT-AER</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Airbus A320neo &bull; Chennai / Bengaluru Base</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/scanner.js') }}"></script>
+{% endblock %}

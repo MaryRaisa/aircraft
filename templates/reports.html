@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance Audit Reports{% endblock %}
+{% block page_title %}Maintenance & Compliance Reports{% endblock %}
+{% block page_subtitle %}System-wide inventory audit, scheduled inspections, and component health summary{% endblock %}
+
+{% block content %}
+<!-- Report Action Header -->
+<div class="filter-bar hide-print">
+  <div>
+    <span style="font-weight: 700; color: var(--navy-dark); font-size: 15px;">Report Generated: {{ generated_date }}</span>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+      Comprehensive status breakdown for aircraft maintenance planning and audit readiness.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <button onclick="window.print()" class="btn btn-secondary">
+      <i data-lucide="printer"></i> Print Full Report
+    </button>
+    <a href="{{ url_for('export_components_csv') }}" class="btn btn-secondary">
+      <i data-lucide="file-spreadsheet"></i> Export Components (CSV)
+    </a>
+    <a href="{{ url_for('export_inspections_csv') }}" class="btn btn-primary">
+      <i data-lucide="download"></i> Export Inspection History (CSV)
+    </a>
+  </div>
+</div>
+
+<!-- Section 1: Attention Required & Overdue Items -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header" style="background: #FFFBEB;">
+    <h3 class="card-title" style="color: #92400E;">
+      <i data-lucide="alert-triangle" style="color: #F59E0B;"></i>
+      High-Priority Action Items (Overdue & Out of Service)
+    </h3>
+    <span class="badge badge-danger">{{ overdue_list|length + out_of_service_list|length }} Action(s)</span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    {% if overdue_list or out_of_service_list %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Component ID</th>
+              <th>Component Name</th>
+              <th>Part & Serial #</th>
+              <th>Next Inspection</th>
+              <th>Priority Condition</th>
+              <th>Action Needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in overdue_list %}
+              <tr>
+                <td><a href="{{ url_for('component_detail', component_id=c.id) }}" class="comp-id-link">{{ c.id }}</a></td>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.model_part_number }} / {{ c.serial_number }}</td>
+                <td><span style="color: var(--status-danger); font-weight: 700;">{{ c.next_inspection_date }}</span></td>
+                <td><span class="badge badge-danger">OVERDUE</span></td>
+                <td>
+                  <a href="{{ url_for('inspection_create', component_id=c.id) }}" class="btn btn-primary btn-sm">
+                    Perform Inspection
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+            {% for c in out_of_service_list %}
+              <tr>
+                <td><a href="{{ url_for('component_detail', component_id=c.id) }}" class="comp-id-link">{{ c.id }}</a></td>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.model_part_number }} / {{ c.serial_number }}</td>
+                <td>{{ c.next_inspection_date }}</td>
+                <td><span class="badge badge-danger">OUT OF SERVICE</span></td>
+                <td>
+                  <a href="{{ url_for('component_detail', component_id=c.id) }}" class="btn btn-secondary btn-sm">
+                    Review Status
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No overdue or grounded components at this time. All components are within allowable intervals.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Section 2: Fleet Inventory & Dynamic Status -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i data-lucide="boxes" style="color: var(--sky-primary);"></i>
+      Complete Component Inventory Status
+    </h3>
+    <span class="badge badge-secondary">{{ components|length }} Total Registered</span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Manufacturer</th>
+            <th>Installed</th>
+            <th>Last Insp.</th>
+            <th>Next Due</th>
+            <th>Operational</th>
+            <th>Maintenance Alert</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in components %}
+            <tr>
+              <td><a href="{{ url_for('component_detail', component_id=c.id) }}" class="comp-id-link">{{ c.id }}</a></td>
+              <td><strong>{{ c.name }}</strong></td>
+              <td>{{ c.manufacturer }}</td>
+              <td>{{ c.installation_date }}</td>
+              <td>{{ c.last_inspection_date }}</td>
+              <td><strong>{{ c.next_inspection_date }}</strong></td>
+              <td>
+                {% if c.status == 'Operational' %}
+                  <span class="status-pill"><span class="status-dot dot-operational"></span> Operational</span>
+                {% elif c.status == 'Requires Attention' %}
+                  <span class="status-pill"><span class="status-dot dot-attention"></span> Attention</span>
+                {% else %}
+                  <span class="status-pill"><span class="status-dot dot-outofservice"></span> Out of Service</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {{ c.maintenance_status.badge_class }}">
+                  {{ c.maintenance_status.label }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: Historical Inspection Audit Log -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">
+      <i data-lucide="history" style="color: var(--sky-primary);"></i>
+      Historical Inspection Audit Log
+    </h3>
+    <span class="badge badge-secondary">{{ inspections|length }} Audit Records</span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Component</th>
+            <th>Inspector / Technician</th>
+            <th>Inspection Type</th>
+            <th>Result</th>
+            <th>Follow-up Due</th>
+            <th>Technician Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in inspections %}
+            <tr>
+              <td>{{ i.inspection_date }}</td>
+              <td><a href="{{ url_for('component_detail', component_id=i.component_id) }}" class="comp-id-link">{{ i.component_id }}</a></td>
+              <td>{{ i.technician_name }}</td>
+              <td>{{ i.inspection_type }}</td>
+              <td>
+                {% if i.result == 'Passed' %}
+                  <span class="badge badge-success">Passed</span>
+                {% elif i.result == 'Failed' %}
+                  <span class="badge badge-danger">Failed</span>
+                {% else %}
+                  <span class="badge badge-warning">Needs Review</span>
+                {% endif %}
+              </td>
+              <td>{{ i.recommended_followup_date or '—' }}</td>
+              <td><small>{{ i.notes or '—' }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

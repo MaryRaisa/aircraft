@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Dashboard{% endblock %} - Aircraft Maintenance Scanner</title>
+  <meta name="description" content="Aircraft Maintenance Scanner – Digital Maintenance Record System: Digitizing aircraft fleet maintenance records with unique aircraft QR codes.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  
+  <!-- Lucide Icons via lightweight CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Sidebar Navigation -->
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="brand-section">
+      <div class="brand-logo-icon">
+        <i data-lucide="plane"></i>
+      </div>
+      <div class="brand-text">
+        <h1>AeroScan</h1>
+        <p>Aircraft QR Records</p>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-category">Fleet & Maintenance</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span>
+        <span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('fleet_list') }}" class="nav-item {% if request.endpoint in ['fleet_list', 'aircraft_master_view'] %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="plane"></i></span>
+        <span>Airline Fleet</span>
+      </a>
+      <a href="{{ url_for('scanner') }}" class="nav-item {% if request.endpoint == 'scanner' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="qr-code"></i></span>
+        <span>Scan Aircraft QR</span>
+      </a>
+      <a href="{{ url_for('maintenance_create') }}" class="nav-item {% if request.endpoint == 'maintenance_create' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="file-plus"></i></span>
+        <span>Log Maintenance</span>
+      </a>
+      <a href="{{ url_for('all_records') }}" class="nav-item {% if request.endpoint == 'all_records' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="history"></i></span>
+        <span>All Maintenance Logs</span>
+      </a>
+      <a href="{{ url_for('aircraft_create') }}" class="nav-item {% if request.endpoint == 'aircraft_create' %}active{% endif %}">
+        <span class="nav-icon"><i data-lucide="plus-circle"></i></span>
+        <span>Register Aircraft</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="disclaimer-badge">BBA Aviation Project</span>
+      <p>Aircraft Maintenance Scanner<br>Digital Maintenance Record System<br>Live Airline Fleet CAMO Prototype</p>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <main class="app-main">
+    <!-- Header -->
+    <header class="app-header">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="header-title-box">
+          <h2>{% block page_title %}Aircraft Maintenance Scanner{% endblock %}</h2>
+          <p>{% block page_subtitle %}Digital Maintenance Record System &bull; Aircraft QR Fleet Tracking{% endblock %}</p>
+        </div>
+      </div>
+
+      {% block header_actions %}{% endblock %}
+    </header>
+
+    <!-- Main Body Area -->
+    <div class="content-area">
+      <!-- Prototype Notice Banner -->
+      <div class="demo-banner">
+        <div class="demo-banner-icon">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="demo-banner-text">
+          <strong>Digital Aircraft Maintenance Record System:</strong> Each aircraft possesses a unique Master QR code. Scanning reveals complete historical maintenance logs, and any new logs or updates are permanently retained.
+        </div>
+      </div>
+
+      <!-- Flash Messages -->
+      <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  {% if category == 'success' %}
+                    <i data-lucide="check-circle-2"></i>
+                  {% elif category == 'danger' %}
+                    <i data-lucide="alert-triangle"></i>
+                  {% elif category == 'warning' %}
+                    <i data-lucide="alert-circle"></i>
+                  {% else %}
+                    <i data-lucide="info"></i>
+                  {% endif %}
+                  <span>{{ message }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- Page Content -->
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+
+<!-- Mobile Nav Toggle and Icon Initialization -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Initialize Lucide icons
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    // Mobile Drawer Toggle
+    const mobileBtn = document.getElementById("mobileMenuBtn");
+    const sidebar = document.getElementById("appSidebar");
+    if (mobileBtn && sidebar) {
+      mobileBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("open");
+      });
+    }
+  });
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

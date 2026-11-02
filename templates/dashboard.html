@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block title %}Fleet Dashboard{% endblock %}
+{% block page_title %}Airline Fleet Maintenance Command Center{% endblock %}
+{% block page_subtitle %}Digitalized aircraft identification, optical QR scanning, and permanent maintenance log tracking{% endblock %}
+
+{% block content %}
+<!-- Executive Fleet Hero Banner -->
+<div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #0B132B 0%, #1E3A8A 100%); color: #FFF; border: none; box-shadow: var(--shadow-md);">
+  <div class="card-body" style="padding: 24px 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <span style="background: rgba(255,255,255,0.15); color: #FFF; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 10px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 6px;">
+            <span class="pulse-dot"></span> Fleet Operations Active
+          </span>
+          <span class="badge badge-success" style="font-size: 12px; background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.4); color: #A7F3D0;">
+            100% Airworthy & In Service
+          </span>
+        </div>
+        <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 4px;">
+          Commercial Airline Fleet & Maintenance Hangar
+        </h2>
+        <p style="font-size: 13px; color: var(--sky-light); margin: 0; max-width: 620px;">
+          Point any camera at an aircraft's Master QR code to instantly retrieve its airframe specifications and complete historical maintenance logs.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4 Clean, Balanced KPI Metrics Cards -->
+<div class="stat-cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 26px;">
+  <!-- Active Fleet -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Active Airframes</span>
+      <span class="stat-value">{{ total_aircraft }} Aircraft</span>
+      <span class="stat-subtext">Air India / AeroFleet (VT-AER)</span>
+    </div>
+    <div class="stat-icon-wrapper stat-icon-blue">
+      <i data-lucide="plane"></i>
+    </div>
+  </div>
+
+  <!-- Total Maintenance Records -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Historical Logs</span>
+      <span class="stat-value">{{ total_records }} Logs</span>
+      <span class="stat-subtext">Preserved digital audit records</span>
+    </div>
+    <div class="stat-icon-wrapper stat-icon-green">
+      <i data-lucide="clipboard-check"></i>
+    </div>
+  </div>
+
+  <!-- Airworthiness Disposition -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Airworthiness</span>
+      <span class="stat-value">{{ completed_count }} Completed</span>
+      <span class="stat-subtext">Fully certified service checks</span>
+    </div>
+    <div class="stat-icon-wrapper stat-icon-green">
+      <i data-lucide="shield-check"></i>
+    </div>
+  </div>
+
+  <!-- Pending & Follow-up Checks -->
+  <div class="stat-card">
+    <div class="stat-info">
+      <span class="stat-label">Inspections Monitored</span>
+      <span class="stat-value">{{ pending_count + further_req_count }} Scheduled</span>
+      <span class="stat-subtext">{{ pending_count }} pending &bull; {{ further_req_count }} further review</span>
+    </div>
+    <div class="stat-icon-wrapper stat-icon-yellow">
+      <i data-lucide="clock"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Section Header with View Toggle (Cards vs Table) -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <h3 style="font-size: 17px; font-weight: 800; color: var(--navy-dark); margin: 0; display: flex; align-items: center; gap: 8px;">
+      <i data-lucide="plane" style="color: var(--sky-primary); width: 20px; height: 20px;"></i>
+      Active Fleet Hangar & Master QR Codes
+    </h3>
+    <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">
+      Click any aircraft card to view its full maintenance log history or scan its QR code directly.
+    </p>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <!-- View Switcher -->
+    <div class="view-mode-toggle">
+      <button type="button" class="view-mode-btn active" id="btnViewCards" onclick="switchView('cards')">
+        <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i> Cards View
+      </button>
+      <button type="button" class="view-mode-btn" id="btnViewTable" onclick="switchView('table')">
+        <i data-lucide="list" style="width: 14px; height: 14px;"></i> Table View
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 1. NEAT HANGAR CARDS VIEW (DEFAULT - HIGHLY LOOKABLE) -->
+<div class="fleet-deck-grid" id="fleetCardsContainer">
+  {% for plane in fleet %}
+    <div class="aircraft-hangar-card">
+      
+      <!-- Hangar Header -->
+      <div class="hangar-card-header">
+        <div>
+          <!-- Airline pill -->
+          {% if 'Emirates' in plane.airline %}
+            <span class="airline-pill airline-emirates">Emirates</span>
+          {% elif 'IndiGo' in plane.airline %}
+            <span class="airline-pill airline-indigo">IndiGo</span>
+          {% elif 'SriLankan' in plane.airline %}
+            <span class="airline-pill airline-srilankan">SriLankan</span>
+          {% elif 'Singapore' in plane.airline %}
+            <span class="airline-pill airline-singapore">Singapore Airlines</span>
+          {% else %}
+            <span class="airline-pill airline-airindia">{{ plane.airline }}</span>
+          {% endif %}
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background: var(--sky-primary); color: #FFF; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 4px;">
+            {{ plane.registration }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Hangar Body -->
+      <div class="hangar-card-body">
+        
+        <!-- Master QR Preview on Left -->
+        <div class="hangar-qr-box">
+          <a href="{{ url_for('aircraft_master_view', registration=plane.registration) }}" title="Click to view full maintenance profile">
+            <img 
+              src="{{ url_for('static', filename=plane.qr_code_path) }}" 
+              alt="QR {{ plane.registration }}" 
+              class="hangar-qr-img"
+            >
+          </a>
+          <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); margin-top: 5px; text-transform: uppercase;">
+            Master QR
+          </span>
+        </div>
+
+        <!-- Specs & Logs on Right -->
+        <div class="hangar-specs-box">
+          <div class="hangar-model-name">
+            <a href="{{ url_for('aircraft_master_view', registration=plane.registration) }}" style="color: inherit; text-decoration: none;">
+              {{ plane.model }}
+            </a>
+          </div>
+
+          <div class="hangar-spec-row">
+            <i data-lucide="map-pin" style="width: 13px; height: 13px; color: var(--sky-primary);"></i>
+            <span><strong>Base:</strong> {{ plane.home_base }}</span>
+          </div>
+
+          <div class="hangar-spec-row">
+            <i data-lucide="gauge" style="width: 13px; height: 13px; color: var(--sky-primary);"></i>
+            <span><strong>Hours:</strong> {{ plane.flight_hours or '0 hrs' }} &bull; {{ plane.cycles or '0 cycles' }}</span>
+          </div>
+
+          <div class="hangar-spec-row">
+            <i data-lucide="cpu" style="width: 13px; height: 13px; color: var(--sky-primary);"></i>
+            <span><strong>Engines:</strong> {{ plane.engine_type or 'Turbofans' }}</span>
+          </div>
+
+          <!-- Latest Service Status Strip -->
+          <div class="hangar-service-strip">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span style="font-weight: 700; color: var(--navy-dark); font-size: 11px; text-transform: uppercase;">
+                {{ plane.record_count }} Logs Recorded
+              </span>
+              {% if plane.latest_record %}
+                {% if 'Completed' in plane.latest_record.service_status %}
+                  <span class="badge badge-success" style="font-size: 10.5px; padding: 2px 6px;">Airworthy</span>
+                {% elif 'Pending' in plane.latest_record.service_status %}
+                  <span class="badge badge-warning" style="font-size: 10.5px; padding: 2px 6px;">Pending</span>
+                {% else %}
+                  <span class="badge badge-danger" style="font-size: 10.5px; padding: 2px 6px;">Review</span>
+                {% endif %}
+              {% else %}
+                <span class="badge badge-secondary" style="font-size: 10.5px; padding: 2px 6px;">Airworthy</span>
+              {% endif %}
+            </div>
+            
+            <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {% if plane.latest_record %}
+                Latest: {{ plane.latest_record.service_date }} &bull; {{ plane.latest_record.component_name }}
+              {% else %}
+                Baseline airframe record registered
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Hangar Footer Action Buttons -->
+      <div class="hangar-card-footer">
+        <a href="{{ url_for('aircraft_master_view', registration=plane.registration) }}" class="btn btn-primary btn-sm" style="flex: 1; justify-content: center; font-weight: 600;" title="View complete maintenance history for this aircraft">
+          <i data-lucide="history"></i> View Logs & QR
+        </a>
+        <a href="{{ url_for('maintenance_create', aircraft=plane.registration) }}" class="btn btn-outline-primary btn-sm" title="Add maintenance record to this aircraft">
+          <i data-lucide="plus"></i> Add Log
+        </a>
+        <a href="{{ url_for('print_aircraft_tag', registration=plane.registration) }}" target="_blank" class="btn btn-secondary btn-sm" title="Print Master QR Tag">
+          <i data-lucide="printer"></i>
+        </a>
+      </div>
+
+    </div>
+  {% endfor %}
+</div>
+
+<!-- 2. CLEAN TABLE VIEW (HIDDEN BY DEFAULT, TOGGLEABLE) -->
+<div class="card" id="fleetTableContainer" style="display: none; margin-bottom: 28px;">
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tail</th>
+            <th>Airline / Operator</th>
+            <th>Aircraft Model</th>
+            <th>Base Airport</th>
+            <th>Historical Logs</th>
+            <th>Latest Status</th>
+            <th>Next Inspection</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plane in fleet %}
+            <tr>
+              <td>
+                <a href="{{ url_for('aircraft_master_view', registration=plane.registration) }}" class="comp-id-link" style="font-weight: 800; font-size: 13.5px;">
+                  {{ plane.registration }}
+                </a>
+              </td>
+              <td>
+                <span style="font-weight: 700; color: var(--navy-dark); font-size: 13px;">
+                  {{ plane.airline }}
+                </span>
+              </td>
+              <td>
+                <span style="font-weight: 600; color: var(--navy-dark); font-size: 12.5px;">
+                  {{ plane.model }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 12px; color: var(--text-secondary);">
+                  {{ plane.home_base }}
+                </span>
+              </td>
+              <td>
+                <span class="badge badge-primary" style="font-size: 11px;">
+                  {{ plane.record_count }} logs
+                </span>
+              </td>
+              <td>
+                {% if plane.latest_record %}
+                  {% if 'Completed' in plane.latest_record.service_status %}
+                    <span class="badge badge-success">{{ plane.latest_record.service_status }}</span>
+                  {% elif 'Pending' in plane.latest_record.service_status %}
+                    <span class="badge badge-warning">{{ plane.latest_record.service_status }}</span>
+                  {% else %}
+                    <span class="badge badge-danger">{{ plane.latest_record.service_status }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="badge badge-secondary">Airworthy</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--navy-dark);">
+                  {{ plane.latest_record.next_inspection_date if plane.latest_record and plane.latest_record.next_inspection_date else '—' }}
+                </span>
+              </td>
+              <td style="text-align: right;">
+                <div style="display: inline-flex; gap: 6px;">
+                  <a href="{{ url_for('aircraft_master_view', registration=plane.registration) }}" class="btn btn-primary btn-sm">
+                    View Logs
+                  </a>
+                  <a href="{{ url_for('maintenance_create', aircraft=plane.registration) }}" class="btn btn-outline-primary btn-sm">
+                    + Log
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Maintenance Activity Feed -->
+<div class="card">
+  <div class="card-header" style="background: #F8FAFC;">
+    <div>
+      <h3 class="card-title">
+        <i data-lucide="history" style="color: var(--sky-primary);"></i>
+        Recent Fleet Maintenance Activities
+      </h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+        Chronological audit stream of latest inspections across Emirates, IndiGo, SriLankan, Singapore Airlines, and Air India
+      </p>
+    </div>
+    <a href="{{ url_for('all_records') }}" class="btn btn-secondary btn-sm">
+      View All {{ total_records }} Logs &rarr;
+    </a>
+  </div>
+
+  <div class="card-body" style="padding: 0;">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Service Date</th>
+            <th>Aircraft Airframe</th>
+            <th>Component / System</th>
+            <th>Activity Performed</th>
+            <th>Inspector / Technician</th>
+            <th>Service Status</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_logs %}
+            <tr>
+              <td>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; font-weight: 600; color: var(--navy-dark);">
+                  {{ r.service_date }}
+                </span>
+              </td>
+              <td>
+                <a href="{{ url_for('aircraft_master_view', registration=r.aircraft_registration) }}" class="comp-id-link">
+                  {{ r.aircraft_registration }}
+                </a>
+                <span style="font-size: 11.5px; color: var(--text-muted); margin-left: 4px;">
+                  ({{ r.airline }})
+                </span>
+              </td>
+              <td>
+                <span style="font-weight: 700; color: var(--navy-dark); font-size: 13px;">
+                  {{ r.component_name }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 12.5px; color: var(--text-secondary);">
+                  {{ r.maintenance_activity }}
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 12px; font-weight: 500;">{{ r.technician }}</span>
+              </td>
+              <td>
+                {% if 'Completed' in r.service_status %}
+                  <span class="badge badge-success"><i data-lucide="check"></i> {{ r.service_status }}</span>
+                {% elif 'Pending' in r.service_status %}
+                  <span class="badge badge-warning"><i data-lucide="clock"></i> {{ r.service_status }}</span>
+                {% elif 'Further' in r.service_status %}
+                  <span class="badge badge-danger"><i data-lucide="alert-triangle"></i> {{ r.service_status }}</span>
+                {% else %}
+                  <span class="badge badge-info">{{ r.service_status }}</span>
+                {% endif %}
+              </td>
+              <td style="text-align: right;">
+                <a href="{{ url_for('aircraft_master_view', registration=r.aircraft_registration) }}" class="btn btn-secondary btn-sm" title="View aircraft profile">
+                  Profile
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function switchView(mode) {
+    const cards = document.getElementById("fleetCardsContainer");
+    const table = document.getElementById("fleetTableContainer");
+    const btnCards = document.getElementById("btnViewCards");
+    const btnTable = document.getElementById("btnViewTable");
+
+    if (mode === "cards") {
+      cards.style.display = "grid";
+      table.style.display = "none";
+      btnCards.classList.add("active");
+      btnTable.classList.remove("active");
+    } else {
+      cards.style.display = "none";
+      table.style.display = "block";
+      btnCards.classList.remove("active");
+      btnTable.classList.add("active");
+    }
+    if (window.lucide) lucide.createIcons();
+  }
+</script>
+{% endblock %}

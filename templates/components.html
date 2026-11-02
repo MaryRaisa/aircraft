@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Registered Aircraft Components{% endblock %}
+{% block page_title %}Registered Aircraft Components{% endblock %}
+{% block page_subtitle %}Component inventory, QR code identifiers, and digital maintenance records summary{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Bar -->
+<form method="GET" action="{{ url_for('component_list') }}" class="filter-bar">
+  <div class="filter-group">
+    <!-- Search Input -->
+    <div style="position: relative; width: 340px;">
+      <input 
+        type="text" 
+        name="search" 
+        class="form-control" 
+        placeholder="Search by Component ID (e.g. ENG-001) or Name..." 
+        value="{{ search }}"
+      >
+    </div>
+
+    <button type="submit" class="btn btn-secondary">
+      <i data-lucide="search"></i> Search
+    </button>
+
+    {% if search %}
+      <a href="{{ url_for('component_list') }}" class="btn btn-secondary" title="Clear Search">
+        <i data-lucide="rotate-ccw"></i> Reset
+      </a>
+    {% endif %}
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <span style="font-size: 13px; color: var(--text-muted);">
+      Total: <strong>{{ total_count }}</strong> component(s)
+    </span>
+    <a href="{{ url_for('component_create') }}" class="btn btn-primary">
+      <i data-lucide="plus"></i> Register New Component
+    </a>
+  </div>
+</form>
+
+<!-- Components Table Card -->
+<div class="card">
+  <div class="card-body" style="padding: 0;">
+    {% if components %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Component ID</th>
+              <th>Component Name</th>
+              <th>QR Code</th>
+              <th>Total Logs</th>
+              <th>Latest Service Date</th>
+              <th>Current Service Status</th>
+              <th>Next Inspection</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in components %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('component_history', component_id=c.component_id) }}" class="comp-id-link">
+                    {{ c.component_id }}
+                  </a>
+                </td>
+                <td>
+                  <span style="font-weight: 700; color: var(--navy-dark); font-size: 14px;">{{ c.component_name }}</span>
+                </td>
+                <td>
+                  <a href="{{ url_for('component_history', component_id=c.component_id) }}" title="View Component QR">
+                    <img 
+                      src="{{ url_for('static', filename=c.qr_code_path) }}" 
+                      alt="QR {{ c.component_id }}" 
+                      style="width: 44px; height: 44px; border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px;"
+                    >
+                  </a>
+                </td>
+                <td>
+                  <span class="badge badge-secondary" style="font-size: 12px; font-weight: 700;">
+                    {{ c.record_count }} log{% if c.record_count != 1 %}s{% endif %}
+                  </span>
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                    {{ c.latest_record.service_date if c.latest_record else 'No logs' }}
+                  </span>
+                </td>
+                <td>
+                  {% if c.latest_record %}
+                    {% if 'Completed' in c.latest_record.service_status %}
+                      <span class="badge badge-success">{{ c.latest_record.service_status }}</span>
+                    {% elif 'Pending' in c.latest_record.service_status %}
+                      <span class="badge badge-warning">{{ c.latest_record.service_status }}</span>
+                    {% elif 'Further' in c.latest_record.service_status %}
+                      <span class="badge badge-danger">{{ c.latest_record.service_status }}</span>
+                    {% else %}
+                      <span class="badge badge-info">{{ c.latest_record.service_status }}</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge badge-secondary">Pending initial service</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;">
+                    {{ c.latest_record.next_inspection_date if c.latest_record and c.latest_record.next_inspection_date else '—' }}
+                  </span>
+                </td>
+                <td style="text-align: right;">
+                  <div style="display: inline-flex; gap: 6px;">
+                    <a href="{{ url_for('component_history', component_id=c.component_id) }}" class="btn btn-secondary btn-sm" title="View Full History">
+                      <i data-lucide="history"></i> History
+                    </a>
+                    <a href="{{ url_for('maintenance_create', component_id=c.component_id) }}" class="btn btn-outline-primary btn-sm" title="Add Maintenance Record">
+                      <i data-lucide="plus"></i> Add Record
+                    </a>
+                    <a href="{{ url_for('print_label', component_id=c.component_id) }}" target="_blank" class="btn btn-secondary btn-sm" title="Print QR Label">
+                      <i data-lucide="printer"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i data-lucide="search-x"></i>
+        </div>
+        <h3>No Components Found</h3>
+        <p>No registered aircraft components matched "{{ search }}".</p>
+        <a href="{{ url_for('component_list') }}" class="btn btn-secondary">
+          <i data-lucide="rotate-ccw"></i> View All Components
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Master Aircraft QR Tag - {{ aircraft.airline }} {{ aircraft.registration }}</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #F1F5F9;
+      color: #0F172A;
+    }
+    .print-controls {
+      max-width: 520px;
+      margin: 0 auto 16px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid #CBD5E1;
+      background: #FFF;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #0284C7;
+      color: #FFF;
+      border-color: #0284C7;
+    }
+    .label-box {
+      width: 520px;
+      margin: 0 auto;
+      background: #FFF;
+      border: 3px solid #0F172A;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+    }
+    .label-header {
+      border-bottom: 2px solid #0F172A;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .label-header h2 {
+      margin: 0;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    .label-header p {
+      margin: 3px 0 0 0;
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 600;
+    }
+    .label-content {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+    .qr-side {
+      width: 170px;
+      text-align: center;
+    }
+    .qr-side img {
+      width: 150px;
+      height: 150px;
+      display: block;
+      margin: 0 auto;
+      border: 2px solid #0F172A;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .details-side {
+      flex: 1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .aircraft-reg {
+      font-family: monospace;
+      font-size: 24px;
+      font-weight: 900;
+      color: #0F172A;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 4px;
+      margin-bottom: 6px;
+    }
+    .aircraft-model {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0284C7;
+      margin-bottom: 8px;
+    }
+    .field-row {
+      margin-bottom: 4px;
+    }
+    .field-row strong {
+      color: #334155;
+    }
+    .records-summary {
+      margin-top: 14px;
+      border-top: 1px solid #E2E8F0;
+      padding-top: 8px;
+      font-size: 11px;
+      color: #475569;
+    }
+    .label-footer {
+      border-top: 1px dashed #94A3B8;
+      margin-top: 14px;
+      padding-top: 6px;
+      font-size: 10px;
+      color: #64748B;
+      text-align: center;
+    }
+    @media print {
+      body {
+        background: #FFF;
+        padding: 0;
+      }
+      .print-controls {
+        display: none;
+      }
+      .label-box {
+        box-shadow: none;
+        border: 2px solid #000;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-controls">
+  <button onclick="window.print()" class="btn btn-primary">&#128438; Print Master Aircraft Tag</button>
+  <button onclick="window.close()" class="btn">&#10005; Close Window</button>
+</div>
+
+<div class="label-box">
+  <div class="label-header">
+    <h2>AIRCRAFT AIRWORTHINESS & MAINTENANCE TAG</h2>
+    <p>{{ aircraft.airline }} &bull; Digital Aircraft Maintenance Record System</p>
+  </div>
+
+  <div class="label-content">
+    <div class="qr-side">
+      <img src="{{ url_for('static', filename=aircraft.qr_code_path) }}" alt="Aircraft Master QR Code">
+      <div style="font-family: monospace; font-size: 13px; font-weight: bold; margin-top: 6px; color: #0F172A;">
+        {{ aircraft.registration }}
+      </div>
+    </div>
+
+    <div class="details-side">
+      <div class="aircraft-reg">{{ aircraft.registration }}</div>
+      <div class="aircraft-model">{{ aircraft.model }}</div>
+      <div class="field-row"><strong>Airline / Operator:</strong> {{ aircraft.airline }}</div>
+      <div class="field-row"><strong>Serial No (MSN):</strong> {{ aircraft.msn or 'N/A' }}</div>
+      <div class="field-row"><strong>Powerplant:</strong> {{ aircraft.engine_type or 'Turbofans' }}</div>
+      <div class="field-row"><strong>Operational Base:</strong> {{ aircraft.home_base or 'N/A' }}</div>
+      <div class="field-row"><strong>Status:</strong> <span style="color: #059669; font-weight: bold;">{{ aircraft.airworthiness_status }}</span></div>
+    </div>
+  </div>
+
+  <div class="records-summary">
+    <strong>Recent Logged Maintenance:</strong>
+    {% if records %}
+      {% for r in records[:3] %}
+        <div>&bull; {{ r.service_date }} — {{ r.component_name }}: {{ r.maintenance_activity }} ({{ r.service_status }})</div>
+      {% endfor %}
+    {% else %}
+      <div>Initial digital baseline airframe record created.</div>
+    {% endif %}
+  </div>
+
+  <div class="label-footer">
+    Scan this single Aircraft Master QR code with any optical scanner or camera to view complete historical maintenance records.
+  </div>
+</div>
+
+</body>
+</html>

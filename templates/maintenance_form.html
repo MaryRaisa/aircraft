@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Log Maintenance Activity{% endblock %}
+{% block page_title %}Log Aircraft Maintenance Record{% endblock %}
+{% block page_subtitle %}Two-step digital logging: Select target aircraft first, then enter technical maintenance details{% endblock %}
+
+{% block content %}
+<div style="max-width: 920px; margin: 0 auto;">
+
+  <!-- Step Indicator -->
+  <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+    <div id="step1Indicator" class="card" style="flex: 1; padding: 14px 18px; border-left: 4px solid var(--sky-primary); background: #FFF;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--sky-primary);">Step 1</div>
+      <div style="font-size: 14px; font-weight: 800; color: var(--navy-dark);">Select Aircraft Airframe</div>
+    </div>
+    <div id="step2Indicator" class="card" style="flex: 1; padding: 14px 18px; border-left: 4px solid #CBD5E1; background: #F8FAFC;">
+      <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted);">Step 2</div>
+      <div style="font-size: 14px; font-weight: 800; color: var(--text-muted);" id="step2IndicatorText">Enter Maintenance Details</div>
+    </div>
+  </div>
+
+  <form method="POST" id="maintenanceForm">
+    <!-- Hidden Aircraft Registration input -->
+    <input type="hidden" name="aircraft_registration" id="selectedAircraftInput" value="{{ selected_aircraft or '' }}">
+
+    <!-- STEP 1: WHICH AIRCRAFT? -->
+    <div class="card" id="aircraftSelectionCard" style="margin-bottom: 24px;">
+      <div class="card-header" style="background: #F8FAFC;">
+        <h3 class="card-title">
+          <i data-lucide="plane" style="color: var(--sky-primary);"></i>
+          Which Aircraft Are You Servicing? <span class="required">*</span>
+        </h3>
+        <span style="font-size: 12px; color: var(--text-muted);">Click an aircraft below to proceed to maintenance details</span>
+      </div>
+
+      <div class="card-body">
+        <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 18px;">
+          Choose the aircraft from the active fleet. The new maintenance entry will be permanently linked to this aircraft's digital log and optical QR code.
+        </p>
+
+        <!-- Aircraft Selection Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 18px;">
+          {% for plane in fleet %}
+            <div 
+              class="aircraft-select-card" 
+              data-reg="{{ plane.registration }}"
+              data-airline="{{ plane.airline }}"
+              data-model="{{ plane.model }}"
+              data-status="{{ plane.airworthiness_status }}"
+              onclick="selectAircraft('{{ plane.registration }}', '{{ plane.airline }}', '{{ plane.model }}')"
+              style="border: 2px solid {% if selected_aircraft == plane.registration %}var(--sky-primary){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md); padding: 16px; cursor: pointer; transition: all 0.2s ease; background: {% if selected_aircraft == plane.registration %}#F0F9FF{% else %}#FFFFFF{% endif %};"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <span style="background: var(--sky-primary); color: #FFF; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 4px;">
+                  {{ plane.registration }}
+                </span>
+                <span class="selected-checkmark" style="display: {% if selected_aircraft == plane.registration %}inline-flex{% else %}none{% endif %}; color: #059669; font-weight: 700; font-size: 12px; align-items: center; gap: 4px;">
+                  <i data-lucide="check-circle-2" style="width: 16px; height: 16px;"></i> Selected
+                </span>
+              </div>
+              <div style="font-weight: 800; font-size: 15px; color: var(--navy-dark); margin-bottom: 2px;">
+                {{ plane.airline }}
+              </div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">
+                {{ plane.model }}
+              </div>
+              <div style="font-size: 11.5px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                Base: {{ plane.home_base }}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Or Select from Dropdown -->
+        <div style="display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+          <label style="font-size: 13px; font-weight: 600; color: var(--navy-dark); white-space: nowrap;">
+            Or choose by registration:
+          </label>
+          <select id="aircraftDropdownSelect" class="form-control" style="max-width: 320px;" onchange="onDropdownChange(this)">
+            <option value="">-- Choose Aircraft Tail --</option>
+            {% for plane in fleet %}
+              <option value="{{ plane.registration }}" {% if selected_aircraft == plane.registration %}selected{% endif %}>
+                {{ plane.registration }} — {{ plane.airline }} ({{ plane.model }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: MAINTENANCE DETAILS (SHOWN DYNAMICALLY ONCE AIRCRAFT IS SELECTED) -->
+    <div class="card" id="maintenanceDetailsCard" style="display: {% if selected_aircraft %}block{% else %}none{% endif %}; border: 2px solid var(--sky-primary);">
+      
+      <!-- Selected Aircraft Summary Header -->
+      <div class="card-header" style="background: linear-gradient(90deg, #F0F9FF 0%, #E0F2FE 100%);">
+        <div>
+          <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--sky-primary); display: block; margin-bottom: 2px;">
+            Target Aircraft
+          </span>
+          <h3 class="card-title" id="selectedAircraftTitle" style="color: var(--navy-dark);">
+            {% if selected_aircraft %}
+              Servicing Aircraft {{ selected_aircraft }}
+            {% else %}
+              Select an Aircraft Above
+            {% endif %}
+          </h3>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="changeAircraft()">
+          <i data-lucide="refresh-cw"></i> Change Aircraft
+        </button>
+      </div>
+
+      <div class="card-body">
+        <div class="form-grid">
+
+          <!-- Aircraft Component / System -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Aircraft System or Rotable Component Worked On <span class="required">*</span>
+            </label>
+            <select name="component_name" id="componentSelect" class="form-control" required onchange="toggleCustomComponent(this)">
+              <option value="">-- Select System / Component --</option>
+              <option value="Aircraft Engine">Aircraft Engine (Powerplant)</option>
+              <option value="Landing Gear & Struts">Landing Gear & Struts</option>
+              <option value="Aircraft Brake System">Aircraft Brake System (Carbon Discs)</option>
+              <option value="Aircraft Tyre Assembly">Aircraft Tyre Assembly</option>
+              <option value="Avionics & TCAS Transponder">Avionics & TCAS Transponder</option>
+              <option value="Auxiliary Power Unit (APU)">Auxiliary Power Unit (APU)</option>
+              <option value="Flight Control Surfaces">Flight Control Surfaces (Flaps, Slats, Ailerons)</option>
+              <option value="Hydraulic Power Actuation">Hydraulic Power Actuation System</option>
+              <option value="Aircraft Main Battery & Electrical">Aircraft Main Battery & Electrical System</option>
+              <option value="Weather Radar & Radome">Weather Radar & Radome</option>
+              <option value="Environmental Control System (ECS)">Environmental Control System (ECS & Pressurization)</option>
+              <option value="Fuel Feed & Tank Valves">Fuel Feed & Tank Valves</option>
+              <option value="Other">Other / Specific Custom Component</option>
+            </select>
+          </div>
+
+          <!-- Custom Component input if 'Other' selected -->
+          <div class="form-group full-width" id="customComponentGroup" style="display: none;">
+            <label class="form-label">Specify Custom Component Name <span class="required">*</span></label>
+            <input type="text" name="custom_component" id="customComponentInput" class="form-control" placeholder="e.g. Ram Air Turbine (RAT), Pitot-Static Probe, Cockpit Voice Recorder">
+          </div>
+
+          <!-- Service Date -->
+          <div class="form-group">
+            <label class="form-label">
+              Service Date <span class="required">*</span>
+            </label>
+            <input 
+              type="date" 
+              name="service_date" 
+              class="form-control" 
+              value="{{ form_data.service_date or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Technician / Inspector -->
+          <div class="form-group">
+            <label class="form-label">
+              Technician or Inspector Name <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="technician" 
+              class="form-control" 
+              placeholder="e.g. Chief Inspector Tariq, Eng. Amit Sharma, Technician B" 
+              value="{{ form_data.technician or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Maintenance Activity -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Maintenance Activity Performed <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="maintenance_activity" 
+              class="form-control" 
+              placeholder="e.g. Routine 100-Hour Inspection, Boroscope check, Brake wear measurement, Actuator lubrication" 
+              value="{{ form_data.maintenance_activity or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Fault Reported -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Fault or Discrepancy Reported
+            </label>
+            <textarea 
+              name="fault_reported" 
+              class="form-control" 
+              style="min-height: 70px;"
+              placeholder="e.g. Vibration reported during cruise, Hydraulic seepage trace noted, Low tyre pressure..." 
+            >{{ form_data.fault_reported or '' }}</textarea>
+          </div>
+
+          <!-- Action Taken -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Corrective Action Taken
+            </label>
+            <textarea 
+              name="action_taken" 
+              class="form-control" 
+              style="min-height: 70px;"
+              placeholder="e.g. Boroscopic inspection completed; blades within tolerance; O-rings replaced and system pressure-tested..."
+            >{{ form_data.action_taken or '' }}</textarea>
+          </div>
+
+          <!-- Service Status -->
+          <div class="form-group">
+            <label class="form-label">
+              Service Status <span class="required">*</span>
+            </label>
+            <select name="service_status" class="form-control" required>
+              <option value="Completed — sample record" {% if form_data.service_status == 'Completed — sample record' %}selected{% endif %}>
+                Completed — Airworthy & Serviceable
+              </option>
+              <option value="Pending inspection" {% if form_data.service_status == 'Pending inspection' %}selected{% endif %}>
+                Pending inspection
+              </option>
+              <option value="Further inspection required" {% if form_data.service_status == 'Further inspection required' %}selected{% endif %}>
+                Further inspection required
+              </option>
+            </select>
+          </div>
+
+          <!-- Next Scheduled Inspection Date -->
+          <div class="form-group">
+            <label class="form-label">
+              Next Scheduled Inspection Date
+            </label>
+            <input 
+              type="date" 
+              name="next_inspection_date" 
+              class="form-control" 
+              value="{{ form_data.next_inspection_date or '' }}"
+            >
+          </div>
+
+          <!-- Additional Notes -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Engineering Findings & Technical Notes (Optional)
+            </label>
+            <textarea 
+              name="notes" 
+              class="form-control" 
+              style="min-height: 60px;"
+              placeholder="Record measured clearances, torque values, part serials, or operational observations..."
+            >{{ form_data.notes or '' }}</textarea>
+          </div>
+
+        </div>
+
+        <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+          <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary" style="padding: 10px 28px; font-weight: 700;">
+            <i data-lucide="check"></i> Save & Record Maintenance Log to Aircraft
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function selectAircraft(reg, airline, model) {
+    document.getElementById("selectedAircraftInput").value = reg;
+    
+    // Update dropdown
+    const dropdown = document.getElementById("aircraftDropdownSelect");
+    if (dropdown) dropdown.value = reg;
+
+    // Update visuals
+    document.querySelectorAll(".aircraft-select-card").forEach(card => {
+      const isMatch = card.getAttribute("data-reg") === reg;
+      card.style.borderColor = isMatch ? "var(--sky-primary)" : "var(--border-subtle)";
+      card.style.background = isMatch ? "#F0F9FF" : "#FFFFFF";
+      const check = card.querySelector(".selected-checkmark");
+      if (check) check.style.display = isMatch ? "inline-flex" : "none";
+    });
+
+    // Update Step 2 Header & Show Form
+    const title = document.getElementById("selectedAircraftTitle");
+    if (title) title.textContent = `Servicing ${airline} ${model} (${reg})`;
+
+    const step2Card = document.getElementById("maintenanceDetailsCard");
+    if (step2Card) {
+      step2Card.style.display = "block";
+      step2Card.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    // Update step indicator
+    const step2Ind = document.getElementById("step2Indicator");
+    const step2Text = document.getElementById("step2IndicatorText");
+    if (step2Ind && step2Text) {
+      step2Ind.style.borderLeftColor = "var(--sky-primary)";
+      step2Ind.style.background = "#FFF";
+      step2Text.style.color = "var(--navy-dark)";
+    }
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function onDropdownChange(select) {
+    if (!select.value) return;
+    const opt = select.options[select.selectedIndex];
+    const card = document.querySelector(`.aircraft-select-card[data-reg='${select.value}']`);
+    if (card) {
+      selectAircraft(
+        select.value,
+        card.getAttribute("data-airline"),
+        card.getAttribute("data-model")
+      );
+    } else {
+      selectAircraft(select.value, "", select.value);
+    }
+  }
+
+  function changeAircraft() {
+    const card = document.getElementById("aircraftSelectionCard");
+    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function toggleCustomComponent(select) {
+    const customGroup = document.getElementById("customComponentGroup");
+    const customInput = document.getElementById("customComponentInput");
+    if (select.value === "Other") {
+      customGroup.style.display = "block";
+      customInput.required = true;
+    } else {
+      customGroup.style.display = "none";
+      customInput.required = false;
+    }
+  }
+
+  // If preselected on load
+  document.addEventListener("DOMContentLoaded", () => {
+    const initialReg = document.getElementById("selectedAircraftInput").value;
+    if (initialReg) {
+      const card = document.querySelector(`.aircraft-select-card[data-reg='${initialReg}']`);
+      if (card) {
+        selectAircraft(
+          initialReg,
+          card.getAttribute("data-airline"),
+          card.getAttribute("data-model")
+        );
+      }
+    }
+  });
+</script>
+{% endblock %}

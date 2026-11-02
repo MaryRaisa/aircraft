@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Record Maintenance Inspection{% endblock %}
+{% block page_title %}Record Component Inspection{% endblock %}
+{% block page_subtitle %}Log technical findings, test results, and maintenance disposition{% endblock %}
+
+{% block content %}
+<div style="max-width: 840px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i data-lucide="clipboard-check" style="color: var(--sky-primary);"></i>
+        Technician Inspection Entry Form
+      </h3>
+      <a href="{{ url_for('inspection_list') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="x"></i> Cancel
+      </a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-grid">
+          <!-- Target Component -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Aircraft Component Under Inspection <span class="required">*</span>
+            </label>
+            <select name="component_id" class="form-control" required>
+              <option value="">-- Select Registered Aircraft Component --</option>
+              {% for comp in components %}
+                <option value="{{ comp.id }}" {% if selected_id == comp.id or form_data.component_id == comp.id %}selected{% endif %}>
+                  {{ comp.id }} — {{ comp.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Inspection Date -->
+          <div class="form-group">
+            <label class="form-label">
+              Inspection Date <span class="required">*</span>
+            </label>
+            <input 
+              type="date" 
+              name="inspection_date" 
+              class="form-control" 
+              value="{{ form_data.inspection_date or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Technician Name -->
+          <div class="form-group">
+            <label class="form-label">
+              Technician Name & Certification ID <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="technician_name" 
+              class="form-control" 
+              placeholder="e.g. Senior Tech. Marcus Vance (A&P #41209)" 
+              value="{{ form_data.technician_name or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Inspection Type -->
+          <div class="form-group">
+            <label class="form-label">
+              Inspection Type <span class="required">*</span>
+            </label>
+            <select name="inspection_type" class="form-control" required>
+              <option value="Routine Pre-Flight" {% if form_data.inspection_type == 'Routine Pre-Flight' %}selected{% endif %}>Routine Pre-Flight Inspection</option>
+              <option value="Detailed A-Check" {% if form_data.inspection_type == 'Detailed A-Check' %}selected{% endif %}>Detailed A-Check Inspection</option>
+              <option value="Periodic B-Check" {% if form_data.inspection_type == 'Periodic B-Check' %}selected{% endif %}>Periodic B-Check Inspection</option>
+              <option value="Boroscopic Examination" {% if form_data.inspection_type == 'Boroscopic Examination' %}selected{% endif %}>Boroscopic Examination (Turbine/Bore)</option>
+              <option value="Non-Destructive Testing" {% if form_data.inspection_type == 'Non-Destructive Testing' %}selected{% endif %}>Non-Destructive Testing (NDT / Eddy Current)</option>
+              <option value="Unscheduled Maintenance" {% if form_data.inspection_type == 'Unscheduled Maintenance' %}selected{% endif %}>Unscheduled Maintenance Verification</option>
+            </select>
+          </div>
+
+          <!-- Inspection Result -->
+          <div class="form-group">
+            <label class="form-label">
+              Inspection Result <span class="required">*</span>
+            </label>
+            <select name="result" id="inspectionResultSelect" class="form-control" required onchange="handleResultChange()">
+              <option value="Passed" {% if form_data.result == 'Passed' or not form_data.result %}selected{% endif %}>Passed (Within Nominal Tolerances)</option>
+              <option value="Needs Review" {% if form_data.result == 'Needs Review' %}selected{% endif %}>Needs Review (Requires Follow-up Assessment)</option>
+              <option value="Failed" {% if form_data.result == 'Failed' %}selected{% endif %}>Failed (Defect Identified / Out of Limit)</option>
+            </select>
+          </div>
+
+          <!-- Recommended Follow-up Date -->
+          <div class="form-group">
+            <label class="form-label">
+              Recommended Next Follow-up Date
+            </label>
+            <input 
+              type="date" 
+              name="recommended_followup_date" 
+              class="form-control" 
+              value="{{ form_data.recommended_followup_date or '' }}"
+            >
+            <span class="form-help">Automatically updates the component's next scheduled inspection date.</span>
+          </div>
+
+          <!-- Demo Business Rule on Failed Result -->
+          <div class="form-group full-width" id="failedDispositionBox" style="display: none; background: #FFFBEB; border: 1px solid #FDE68A; padding: 16px; border-radius: var(--radius-md);">
+            <div style="font-weight: 700; color: #92400E; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="alert-triangle"></i>
+              Demonstration Safety Rule: Component Disposition
+            </div>
+            <p style="font-size: 12.5px; color: #78350F; margin-bottom: 10px;">
+              Because this inspection is marked as Failed or Needs Review, select how this educational prototype should update the component's demo status:
+            </p>
+            <div style="display: flex; gap: 20px; font-size: 13px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="update_component_status" value="out_of_service" checked>
+                <strong>Mark Out of Service (Ground Component)</strong>
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="update_component_status" value="attention">
+                <strong>Mark Requires Attention</strong>
+              </label>
+            </div>
+          </div>
+
+          <!-- Technician Notes -->
+          <div class="form-group full-width">
+            <label class="form-label">
+              Inspection Findings & Technician Remarks
+            </label>
+            <textarea 
+              name="notes" 
+              class="form-control" 
+              placeholder="Record measured clearances, pressures, physical condition, crack inspections, or replacement recommendations..."
+            >{{ form_data.notes or '' }}</textarea>
+          </div>
+        </div>
+
+        <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+          <a href="{{ url_for('inspection_list') }}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="check"></i> Submit & Log Inspection
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function handleResultChange() {
+    const sel = document.getElementById('inspectionResultSelect');
+    const box = document.getElementById('failedDispositionBox');
+    if (sel && box) {
+      if (sel.value === 'Failed') {
+        box.style.display = 'block';
+      } else {
+        box.style.display = 'none';
+      }
+    }
+  }
+  document.addEventListener("DOMContentLoaded", handleResultChange);
+</script>
+{% endblock %}

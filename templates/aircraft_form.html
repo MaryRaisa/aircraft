@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Register New Aircraft{% endblock %}
+{% block page_title %}Register New Aircraft to Fleet{% endblock %}
+{% block page_subtitle %}Add an aircraft airframe into the digital maintenance system and generate its Master QR Code{% endblock %}
+
+{% block content %}
+<div style="max-width: 820px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        <i data-lucide="plane" style="color: var(--sky-primary);"></i>
+        New Aircraft Registration Form
+      </h3>
+      <a href="{{ url_for('fleet_list') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="x"></i> Cancel
+      </a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-grid">
+          
+          <!-- Registration / Tail Number -->
+          <div class="form-group">
+            <label class="form-label">
+              Aircraft Registration (Tail #) <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="registration" 
+              class="form-control" 
+              placeholder="e.g. VT-BLR, VT-DEL, VT-SPK" 
+              value="{{ form_data.registration or '' }}" 
+              style="font-family: 'JetBrains Mono', monospace; font-weight: 700; text-transform: uppercase;"
+              required
+            >
+            <span class="form-help">Indian DGCA registration prefix "VT-". Encoded into this aircraft's Master QR Code.</span>
+          </div>
+
+          <!-- Aircraft Model -->
+          <div class="form-group">
+            <label class="form-label">
+              Aircraft Model <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="model" 
+              class="form-control" 
+              placeholder="e.g. Boeing 737-800, Airbus A350-900, ATR 72-600" 
+              value="{{ form_data.model or '' }}" 
+              required
+            >
+          </div>
+
+          <!-- Airline / Operator -->
+          <div class="form-group">
+            <label class="form-label">
+              Airline / Fleet Operator <span class="required">*</span>
+            </label>
+            <input 
+              type="text" 
+              name="airline" 
+              class="form-control" 
+              placeholder="e.g. AeroFleet Airways, IndiGo, Air India Express" 
+              value="{{ form_data.airline or 'AeroFleet Airways' }}" 
+              required
+            >
+          </div>
+
+          <!-- Manufacturer Serial Number (MSN) -->
+          <div class="form-group">
+            <label class="form-label">Manufacturer Serial Number (MSN)</label>
+            <input 
+              type="text" 
+              name="msn" 
+              class="form-control" 
+              placeholder="e.g. MSN-38291" 
+              value="{{ form_data.msn or '' }}"
+            >
+          </div>
+
+          <!-- Total Airframe Hours -->
+          <div class="form-group">
+            <label class="form-label">Total Flight Hours</label>
+            <input 
+              type="text" 
+              name="flight_hours" 
+              class="form-control" 
+              placeholder="e.g. 1,840 hrs" 
+              value="{{ form_data.flight_hours or '0 hrs' }}"
+            >
+          </div>
+
+          <!-- Total Cycles -->
+          <div class="form-group">
+            <label class="form-label">Total Flight Cycles (Landings)</label>
+            <input 
+              type="text" 
+              name="cycles" 
+              class="form-control" 
+              placeholder="e.g. 1,120 cycles" 
+              value="{{ form_data.cycles or '0 cycles' }}"
+            >
+          </div>
+
+          <!-- Powerplant / Engines -->
+          <div class="form-group">
+            <label class="form-label">Powerplant / Engine Type</label>
+            <input 
+              type="text" 
+              name="engine_type" 
+              class="form-control" 
+              placeholder="e.g. 2x CFM56-7B26 Turbofans" 
+              value="{{ form_data.engine_type or '2x Turbofan Engines' }}"
+            >
+          </div>
+
+          <!-- Operational Base -->
+          <div class="form-group">
+            <label class="form-label">Home Base Airport</label>
+            <input 
+              type="text" 
+              name="home_base" 
+              class="form-control" 
+              placeholder="e.g. Bengaluru (BLR) / Delhi (DEL)" 
+              value="{{ form_data.home_base or 'Chennai (MAA)' }}"
+            >
+          </div>
+
+          <!-- Airworthiness Status -->
+          <div class="form-group full-width">
+            <label class="form-label">Current Airworthiness Status</label>
+            <select name="airworthiness_status" class="form-control">
+              <option value="Airworthy & In Service">Airworthy & In Service</option>
+              <option value="Maintenance Standby">Maintenance Standby (Periodic Check)</option>
+              <option value="AOG / Grounded">AOG / Grounded (Unscheduled Inspection)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+          <a href="{{ url_for('fleet_list') }}" class="btn btn-secondary">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i data-lucide="qr-code"></i> Register Aircraft & Generate Master QR Code
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

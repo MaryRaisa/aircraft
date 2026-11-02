@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}{{ aircraft.airline }} {{ aircraft.model }} ({{ aircraft.registration }}) — Digital Maintenance Record{% endblock %}
+{% block page_title %}{{ aircraft.airline }} {{ aircraft.model }} ({{ aircraft.registration }}){% endblock %}
+{% block page_subtitle %}Master Aircraft Digital Record &bull; Optical QR Maintenance Profile & Full Historical Logs{% endblock %}
+
+{% block content %}
+<!-- Master Aircraft Hero Banner with Single Aircraft QR Code -->
+<div class="card" style="margin-bottom: 28px; background: linear-gradient(135deg, #0B132B 0%, #1E3A8A 100%); color: #FFF; border: none; box-shadow: var(--shadow-md);">
+  <div class="card-body" style="padding: 28px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px;">
+      
+      <!-- Aircraft Info Left -->
+      <div style="flex: 1; min-width: 280px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <span style="background: var(--sky-primary); color: #FFF; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; padding: 4px 12px; border-radius: 6px; letter-spacing: 0.5px;">
+            TAIL: {{ aircraft.registration }}
+          </span>
+          <span class="badge badge-success" style="font-size: 13px;">
+            <i data-lucide="shield-check"></i> {{ aircraft.airworthiness_status }}
+          </span>
+        </div>
+
+        <h2 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">
+          {{ aircraft.airline }} &bull; {{ aircraft.model }}
+        </h2>
+        <div style="font-size: 14px; color: var(--sky-light); margin-bottom: 16px;">
+          Official Master Airframe Profile & Digital Maintenance Record
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px; color: var(--sky-light); margin-bottom: 22px;">
+          <div><strong>Operator:</strong> {{ aircraft.airline }}</div>
+          <div><strong>Manufacturer S/N:</strong> {{ aircraft.msn or 'MSN-N/A' }}</div>
+          <div><strong>Total Airframe Time:</strong> {{ aircraft.flight_hours or '0 hrs' }}</div>
+          <div><strong>Total Flight Cycles:</strong> {{ aircraft.cycles or '0 cycles' }}</div>
+          <div><strong>Powerplant:</strong> {{ aircraft.engine_type or 'Turbofans' }}</div>
+          <div><strong>Operational Base:</strong> {{ aircraft.home_base or 'N/A' }}</div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="#addMaintenanceSection" class="btn btn-primary">
+            <i data-lucide="plus"></i> Add Maintenance Log
+          </a>
+          <a href="{{ url_for('print_aircraft_tag', registration=aircraft.registration) }}" target="_blank" class="btn btn-secondary">
+            <i data-lucide="printer"></i> Print Master Aircraft QR Tag
+          </a>
+          <a href="{{ url_for('export_csv', aircraft=aircraft.registration) }}" class="btn btn-outline-primary" style="color: #FFF; border-color: rgba(255,255,255,0.4);">
+            <i data-lucide="download"></i> Export Aircraft Audit Logs (CSV)
+          </a>
+        </div>
+      </div>
+
+      <!-- Single Master Aircraft QR Code Right -->
+      <div style="background: #FFFFFF; border-radius: var(--radius-md); padding: 18px; text-align: center; color: var(--navy-dark); box-shadow: 0 4px 14px rgba(0,0,0,0.3); min-width: 190px;">
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">
+          Aircraft Master QR Code
+        </div>
+        <img 
+          src="{{ url_for('static', filename=aircraft.qr_code_path) }}" 
+          alt="Master QR Code for {{ aircraft.registration }}" 
+          style="width: 155px; height: 155px; display: block; margin: 0 auto 8px auto; border: 1px solid #CBD5E1; border-radius: 6px; padding: 4px;"
+        >
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: var(--navy-dark); margin-bottom: 8px;">
+          {{ aircraft.registration }}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <a 
+            href="{{ url_for('static', filename=aircraft.qr_code_path) }}" 
+            download="{{ aircraft.registration }}_Master_QR.png" 
+            class="btn btn-secondary btn-sm"
+          >
+            <i data-lucide="download"></i> Download QR PNG
+          </a>
+          <a 
+            href="{{ url_for('print_aircraft_tag', registration=aircraft.registration) }}" 
+            target="_blank"
+            class="btn btn-outline-primary btn-sm"
+          >
+            <i data-lucide="printer"></i> Print Label
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Section 1: Complete Historical Maintenance Log (Chronological, Newest First) -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header" style="background: #F8FAFC;">
+    <div>
+      <h3 class="card-title">
+        <i data-lucide="clipboard-list" style="color: var(--sky-primary);"></i>
+        Historical Maintenance Logs for {{ aircraft.registration }} ({{ records|length }} Records)
+      </h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+        All past inspections, reported defects, and corrective repairs for this aircraft. Any new updates are permanently retained.
+      </p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="#addMaintenanceSection" class="btn btn-primary btn-sm">
+        <i data-lucide="plus"></i> Add Maintenance Record
+      </a>
+      <a href="{{ url_for('export_csv', aircraft=aircraft.registration) }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="download"></i> Export CSV
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body" style="padding: 24px;">
+    {% if records %}
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+        {% for r in records %}
+          <div style="background: #FFFFFF; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease;">
+            
+            <!-- Top bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="background: #EEF2F6; color: var(--navy-dark); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
+                  Log #{{ r.record_id }}
+                </span>
+                <span style="font-weight: 800; color: var(--navy-dark); font-size: 15px;">
+                  {{ r.component_name }}
+                </span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--sky-primary); font-weight: 700;">
+                  &bull; {{ r.service_date }}
+                </span>
+              </div>
+
+              <div>
+                {% if 'Completed' in r.service_status %}
+                  <span class="badge badge-success"><i data-lucide="check"></i> {{ r.service_status }}</span>
+                {% elif 'Pending' in r.service_status %}
+                  <span class="badge badge-warning"><i data-lucide="clock"></i> {{ r.service_status }}</span>
+                {% elif 'Further' in r.service_status %}
+                  <span class="badge badge-danger"><i data-lucide="alert-triangle"></i> {{ r.service_status }}</span>
+                {% else %}
+                  <span class="badge badge-info">{{ r.service_status }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px;">
+              <div>
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 2px;">Activity Performed</span>
+                <span style="font-weight: 600; font-size: 13.5px; color: var(--navy-dark);">{{ r.maintenance_activity }}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 2px;">Inspector / Technician</span>
+                <span style="font-size: 13px; font-weight: 600; color: var(--navy-dark);">{{ r.technician }}</span>
+              </div>
+              <div>
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 2px;">Next Scheduled Inspection</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #0284C7;">
+                  {{ r.next_inspection_date or 'None scheduled' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Fault and Action Taken -->
+            <div style="background: #F8FAFC; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; line-height: 1.5; margin-bottom: 8px;">
+              <div style="margin-bottom: 6px;">
+                <strong style="color: #DC2626;">Fault / Discrepancy Reported:</strong> 
+                <span>{{ r.fault_reported or 'Routine inspection — no discrepancies reported.' }}</span>
+              </div>
+              <div>
+                <strong style="color: #059669;">Corrective Action Taken:</strong> 
+                <span>{{ r.action_taken or 'Maintenance task completed and inspected.' }}</span>
+              </div>
+            </div>
+
+            {% if r.notes %}
+              <div style="font-size: 12.5px; color: var(--text-secondary); margin-top: 6px;">
+                <strong>Engineering Notes:</strong> {{ r.notes }}
+              </div>
+            {% endif %}
+
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <i data-lucide="clipboard-x"></i>
+        </div>
+        <h3>No Maintenance Logs Recorded Yet</h3>
+        <p>This aircraft does not have any recorded maintenance logs yet. Use the form below to enter the first record.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Section 2: Inline Form to Log New Maintenance Activity for this Aircraft -->
+<div class="card" id="addMaintenanceSection" style="margin-bottom: 28px; border: 2px solid var(--sky-primary);">
+  <div class="card-header" style="background: linear-gradient(90deg, #F0F9FF 0%, #E0F2FE 100%);">
+    <div>
+      <h3 class="card-title" style="color: var(--navy-dark);">
+        <i data-lucide="file-plus" style="color: var(--sky-primary);"></i>
+        Log New Maintenance Activity for Aircraft {{ aircraft.registration }}
+      </h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+        Directly attached to {{ aircraft.airline }} {{ aircraft.model }} ({{ aircraft.registration }})
+      </p>
+    </div>
+    <span class="badge badge-primary">Instant SQLite Database Update</span>
+  </div>
+
+  <div class="card-body">
+    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+      Enter newly performed maintenance work, inspections, or component repairs for this aircraft. Once saved, it will immediately display in the aircraft's history above while <strong>permanently preserving all previous maintenance records</strong>.
+    </p>
+
+    <form method="POST" action="{{ url_for('maintenance_create') }}">
+      <!-- Target Aircraft -->
+      <input type="hidden" name="aircraft_registration" value="{{ aircraft.registration }}">
+
+      <div class="form-grid">
+        
+        <!-- Component / System -->
+        <div class="form-group full-width">
+          <label class="form-label">
+            Aircraft System or Rotable Component Worked On <span class="required">*</span>
+          </label>
+          <select name="component_name" class="form-control" required onchange="toggleInlineCustom(this)">
+            <option value="">-- Choose System / Component --</option>
+            <option value="Aircraft Engine">Aircraft Engine (Powerplant)</option>
+            <option value="Landing Gear & Struts">Landing Gear & Struts</option>
+            <option value="Aircraft Brake System">Aircraft Brake System (Carbon Discs)</option>
+            <option value="Aircraft Tyre Assembly">Aircraft Tyre Assembly</option>
+            <option value="Avionics & TCAS Transponder">Avionics & TCAS Transponder</option>
+            <option value="Auxiliary Power Unit (APU)">Auxiliary Power Unit (APU)</option>
+            <option value="Flight Control Surfaces">Flight Control Surfaces (Flaps, Slats, Ailerons)</option>
+            <option value="Hydraulic Power Actuation">Hydraulic Power Actuation System</option>
+            <option value="Aircraft Main Battery & Electrical">Aircraft Main Battery & Electrical System</option>
+            <option value="Weather Radar & Radome">Weather Radar & Radome</option>
+            <option value="Environmental Control System (ECS)">Environmental Control System (ECS & Pressurization)</option>
+            <option value="Fuel Feed & Tank Valves">Fuel Feed & Tank Valves</option>
+            <option value="Other">Other / Specific Custom Component</option>
+          </select>
+        </div>
+
+        <!-- Custom Component input if 'Other' selected -->
+        <div class="form-group full-width" id="inlineCustomComponentGroup" style="display: none;">
+          <label class="form-label">Specify Component Name <span class="required">*</span></label>
+          <input type="text" name="custom_component" id="inlineCustomComponentInput" class="form-control" placeholder="e.g. Flap Track Fairing, Oxygen Bottle, Radar Altimeter">
+        </div>
+
+        <!-- Service Date -->
+        <div class="form-group">
+          <label class="form-label">
+            Service Date <span class="required">*</span>
+          </label>
+          <input type="date" name="service_date" class="form-control" value="{{ today_str }}" required>
+        </div>
+
+        <!-- Technician -->
+        <div class="form-group">
+          <label class="form-label">
+            Technician / Inspector Name <span class="required">*</span>
+          </label>
+          <input type="text" name="technician" class="form-control" placeholder="e.g. Chief Inspector Tariq, Eng. Amit Sharma" required>
+        </div>
+
+        <!-- Maintenance Activity -->
+        <div class="form-group full-width">
+          <label class="form-label">
+            Maintenance Activity Performed <span class="required">*</span>
+          </label>
+          <input type="text" name="maintenance_activity" class="form-control" placeholder="e.g. Periodic A-Check Inspection, Hot section Boroscope check, Brake wear measurement" required>
+        </div>
+
+        <!-- Fault Reported -->
+        <div class="form-group full-width">
+          <label class="form-label">Fault or Discrepancy Reported</label>
+          <input type="text" name="fault_reported" class="form-control" placeholder="e.g. Slight telemetry vibration anomaly, Seepage trace, Low nitrogen pressure...">
+        </div>
+
+        <!-- Action Taken -->
+        <div class="form-group full-width">
+          <label class="form-label">Corrective Action Taken</label>
+          <input type="text" name="action_taken" class="form-control" placeholder="e.g. Component inspected; seals replaced; pressure test passed at 3,000 PSI...">
+        </div>
+
+        <!-- Service Status -->
+        <div class="form-group">
+          <label class="form-label">
+            Service Status <span class="required">*</span>
+          </label>
+          <select name="service_status" class="form-control" required>
+            <option value="Completed — sample record">Completed — Airworthy & Serviceable</option>
+            <option value="Pending inspection">Pending inspection</option>
+            <option value="Further inspection required">Further inspection required</option>
+          </select>
+        </div>
+
+        <!-- Next Scheduled Inspection Date -->
+        <div class="form-group">
+          <label class="form-label">Next Scheduled Inspection Date</label>
+          <input type="date" name="next_inspection_date" class="form-control" value="{{ default_next }}">
+        </div>
+
+        <!-- Additional Notes -->
+        <div class="form-group full-width">
+          <label class="form-label">Technical Findings & Additional Notes</label>
+          <textarea name="notes" class="form-control" style="min-height: 60px;" placeholder="Record measured tolerances, torque values, serial numbers, or operational remarks..."></textarea>
+        </div>
+
+      </div>
+
+      <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+        <button type="submit" class="btn btn-primary" style="padding: 10px 28px; font-weight: 700;">
+          <i data-lucide="check"></i> Save & Record Maintenance Log
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function toggleInlineCustom(select) {
+    const group = document.getElementById("inlineCustomComponentGroup");
+    const input = document.getElementById("inlineCustomComponentInput");
+    if (select.value === "Other") {
+      group.style.display = "block";
+      input.required = true;
+    } else {
+      group.style.display = "none";
+      input.required = false;
+    }
+  }
+</script>
+{% endblock %}
